@@ -8,9 +8,11 @@ async def cleanup_expired_tokens():
     try:
         deleted = await conn.execute('''
         DELETE FROM refresh_tokens
-        WHERE expires_at < NOW() - INTERVAL "5 minutes"''')
+        WHERE expires_at < NOW() - INTERVAL '5 minutes'
+        ''')
         if deleted != 'DELETE 0':
-            print(f'[{datetime.now()}] Cleaned up {deleted} expired tokens')
+            count = int(deleted.split()[1])
+            print(f'[{datetime.now()}] Cleaned up {count} expired tokens')
     except Exception as e:
         print(f'Cleanup error: {e}')
     finally:
