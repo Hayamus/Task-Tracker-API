@@ -8,7 +8,8 @@ async def cleanup_expired_tokens():
     try:
         deleted = await conn.execute('''
         DELETE FROM refresh_tokens
-        WHERE expires_at < NOW() - INTERVAL '5 minutes'
+        WHERE expires_at < NOW() - INTERVAL '5 minutes' OR 
+        is_revoked IS TRUE
         ''')
         if deleted != 'DELETE 0':
             count = int(deleted.split()[1])

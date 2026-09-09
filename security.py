@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 async def get_user(username: str, db: asyncpg.Connection) -> Dict:
     user = await db.fetchrow('''
-    SELECT id, password, username, user_role FROM users
+    SELECT id, password, username, is_admin, bio FROM users
     WHERE username=$1
     ''', username)
     if not user:
@@ -85,7 +85,7 @@ async def revoke_single_refresh(raw_token: str, db: asyncpg.Connection) -> bool:
         return False
     return True
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     SECRET = os.getenv('SECRET_KEY')
 
     try:
@@ -95,3 +95,48 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Токен истек или некорректен')
+
+async def get_task(
+        task_id: int,
+        db: asyncpg.Connection
+) -> Dict:
+    result = await db.fetchrow('''
+    SELECT id, owner_id, team_id, title, description, completed, created_at, updated_at, completed_at, version, deadline, is_personal
+    FROM tasks 
+    WHERE id=$1
+    ''', task_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    return dict(result)
+
+async def check_task(
+        user_id: int,
+        task_id: int,
+        db: asyncpg.Connection
+) -> bool:
+    task = await get_task(task_id, db)
+    if user_id == task.get('owner_id'):
+        return True
+    if task.get('team_id') is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Вы не можете изменить данную задачу'
+        )
+    role = await db.fetchval('''
+    SELECT role FROM team_members
+    WHERE team_id=$1 AND user_id=$2;
+    ''', task.get('team_id'), user_id)
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Вы не являетесь участником команды с данной задачей'
+        )
+    if role not in ['admin', 'moderator']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='У вас нет права изменять данную задачу'
+        )
+    return True
