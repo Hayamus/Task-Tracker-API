@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field, field_validator, AwareDatetime
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from enum import Enum
 import re
-from datetime import datetime
 
 class UserRole(str, Enum):
     ADMIN = 'admin'
@@ -33,38 +32,3 @@ class User(BaseModel):
     username: str
     password: str
     is_admin: bool
-
-class TeamCreate(BaseModel):
-    name: str = Field(min_length=2, max_length=24)
-    description: str = Field(max_length=1200)
-
-class Team(BaseModel):
-    id: int
-    owner_id: int
-    name: str
-    description: str
-    members_count: int
-
-class TaskCreate(BaseModel):
-    title: str = Field(..., max_length=24)
-    description: str = Field(max_length=1500)
-    deadline: Optional[AwareDatetime] = None
-    is_personal: bool
-    team_id: Optional[int] = None
-
-class TaskInDB(BaseModel):
-    owner_id: int
-    team_id: Optional[int] = None
-    title: str
-    description: str
-    deadline: Optional[AwareDatetime] = None
-    is_personal: bool
-
-class TaskUpdate(BaseModel):
-    description: Optional[str] = None
-    completed: bool
-    version: int
-
-class TodoBulkUpdate(BaseModel):
-    ids: list[int]
-    completed: bool
