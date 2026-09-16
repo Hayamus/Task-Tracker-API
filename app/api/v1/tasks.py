@@ -7,7 +7,7 @@ from app.api.deps import get_current_user, check_task_access
 from app.repositories.task_repo import TaskRepository
 from app.repositories.team_repo import TeamRepository
 from app.repositories.audit_repo import AuditRepository
-from app.schemas.task import TaskCreate, TaskInDB, TaskUpdate
+from app.schemas.task import TaskCreate, TaskInDB, TaskUpdate, TaskFilterParams
 from app.schemas.audit import AuditAction
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -147,11 +147,24 @@ async def update_task(
     return {"message": "Задача успешно обновлена"}
 
 
-@router.get("/{user_id}")
-async def get_tasks_by_user(
+@router.get("/")
+async def get_my_tasks(
+    filters: TaskFilterParams = Depends(),
     current_user: dict = Depends(get_current_user),
     db: asyncpg.Connection = Depends(get_db_connection)
 ):
     task_repo = TaskRepository(db)
-    tasks = await task_repo.get_tasks_by_user(current_user["id"])
-    return {"tasks": tasks}
+    tasks = await task_repo.get_tasks_by_user(
+        user_id=current_user["id"],
+        completed=filters.completed,
+        is_personal=filters.is_personal,
+        team_id=filters.team_id,
+        search=filters.search,
+        limit=filters.limit,
+        offset=filters.offset
+    )
+    return {
+        "tasks": tasks,
+        "limit": filters.limit,
+        "offset": filters.offset
+    }

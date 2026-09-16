@@ -52,13 +52,50 @@ class TaskRepository:
             description, completed, completed_at, current_version + 1, task_id, current_version
         )
 
-    async def get_tasks_by_user(self, user_id: int) -> List[Dict[str, Any]]:
-        rows = await self.conn.fetch(
+    async def get_tasks_by_user(
+        self,
+        user_id: int,
+        completed: Optional[bool] = None,
+        is_personal: Optional[bool] = None,
+        team_id: Optional[int] = None,
+        search: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        query = [
             """
-            SELECT id, team_id, title, description, completed
+            SELECT id, team_id, title, description, completed, 
+                   created_at, updated_at, completed_at, version, deadline, is_personal
             FROM tasks
             WHERE owner_id = $1
-            """,
-            user_id
-        )
+            """
+        ]
+        params: List[Any] = [user_id]
+        param_idx = 2
+
+        if completed is not None:
+            query.append(f"AND completed = ${param_idx}")
+            params.append(completed)
+            param_idx += 1
+
+        if is_personal is not None:
+            query.append(f"AND is_personal = ${param_idx}")
+            params.append(is_personal)
+            param_idx += 1
+
+        if team_id is not None:
+            query.append(f"AND team_id = ${param_idx}")
+            params.append(team_id)
+            param_idx += 1
+
+        if search:
+            query.append(f"AND title ILIKE ${param_idx}")
+            params.append(f"%{search}%")
+            param_idx += 1
+
+        query.append(f"ORDER BY created_at DESC LIMIT ${param_idx} OFFSET ${param_idx + 1}")
+        params.extend([limit, offset])
+
+        full_sql = " ".join(query)
+        rows = await self.conn.fetch(full_sql, *params)
         return [dict(row) for row in rows]
