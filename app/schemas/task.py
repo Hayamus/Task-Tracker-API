@@ -20,3 +20,11 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     completed: bool
     version: int
+
+class TaskFilterParams(BaseModel):
+    completed: Optional[bool] = None
+    is_personal: Optional[bool] = None
+    team_id: Optional[int] = None
+    search: Optional[str] = Field(None, max_length=50, description="Поиск по названию задачи")
+    limit: int = Field(20, ge=1, le=100, description="Количество записей (макс. 100)")
+    offset: int = Field(0, ge=0, description="Смещение")
