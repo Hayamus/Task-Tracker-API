@@ -98,7 +98,7 @@ main.py                     # Точка входа, lifespan, регистра�
 
 ### 1. Клонирование репозитория и окружение
 ```bash
-git clone <url-вашего-репозитория>
+git clone https://github.com/Hayamus/Task-Tracker-API
 cd <папка-проекта>
 
 python -m venv venv
